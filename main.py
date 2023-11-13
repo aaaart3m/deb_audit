@@ -97,46 +97,56 @@ def get_transitive_components(direct_components: dict) -> dict:
     return transitive_components
 
 
+def _all_utilities_in_system():
+    dpkg_w = ['dpkg-query', '-W']
+    return subprocess.run(dpkg_w, check=True, capture_output=True, text=True).stdout.split('\n')
+
+
+def _system_states_difference(first_state, second_state, architecture):
+    difference = [line.strip() for line in first_state if line not in second_state]
+    # difference_dict = dict()
+    # for line in difference:
+    #     if ':arm64' in line:
+    #         difference_dict[line.split(':arm64')[0]] = line.split(':arm64')[1].split()[-1].strip()
+    #     else:
+    #         difference_dict[line.split()[0]] = line.split()[-1].strip()
+    difference_utilities = set()
+    for line in difference:
+        if ':arm64' in line:
+            difference_utilities.add(f'{line.split(":arm64")[0]} '
+                                     f'{line.split(":arm64")[1].split()[-1].strip()} '
+                                     f'{architecture}')
+        elif ':amd64' in line:
+            difference_utilities.add(f'{line.split(":amd64")[0]} '
+                                     f'{line.split(":amd64")[1].split()[-1].strip()} '
+                                     f'{architecture}')
+        else:
+            difference_utilities.add(f'{line.split()[0]} '
+                                     f'{line.split()[-1].strip()} '
+                                     f'{architecture}')
+    return difference_utilities
+
+
 def check_diff_after_install(deb_file: str, architecture: str):
     if os.path.isfile(deb_file):
         # print(f"{filepath} is file")
         try:
-            dpkg_w = ['dpkg-query', '-W']
-            system_before_installing = subprocess.run(dpkg_w, check=True, capture_output=True, text=True).stdout.split('\n')
+            system_before_installing = _all_utilities_in_system
             # print('before: ', len(system_before_installing))
             # print('===========')
 
             apt_get_install = ['apt-get', 'install', '-f', '-y', deb_file]
             subprocess.run(apt_get_install, check=True, capture_output=True, text=True)
-            system_after_installing = subprocess.run(dpkg_w, check=True, capture_output=True, text=True).stdout.split('\n')
+            system_after_installing = _all_utilities_in_system()
             # print('after: ', len(system_after_installing))
             # print('===========')
 
             # uname_m = ['uname', '-m']
             # architecture = subprocess.run(uname_m, check=True, capture_output=True, text=True).stdout
-
-            difference = [line.strip() for line in system_after_installing if line not in system_before_installing]
-            # difference_dict = dict()
-            # for line in difference:
-            #     if ':arm64' in line:
-            #         difference_dict[line.split(':arm64')[0]] = line.split(':arm64')[1].split()[-1].strip()
-            #     else:
-            #         difference_dict[line.split()[0]] = line.split()[-1].strip()
-            difference_utilities = set()
-            for line in difference:
-                if ':arm64' in line:
-                    difference_utilities.add(f'{line.split(":arm64")[0]} '
-                                             f'{line.split(":arm64")[1].split()[-1].strip()} '
-                                             f'{architecture}')
-                elif ':amd64' in line:
-                    difference_utilities.add(f'{line.split(":amd64")[0]} '
-                                             f'{line.split(":amd64")[1].split()[-1].strip()} '
-                                             f'{architecture}')
-                else:
-                    difference_utilities.add(f'{line.split()[0]} '
-                                             f'{line.split()[-1].strip()} '
-                                             f'{architecture}')
-
+            difference_utilities = _system_states_difference(
+                first_state=system_before_installing,
+                second_state=system_after_installing,
+                architecture=architecture)
             return difference_utilities
         except subprocess.CalledProcessError as sp_called_error:
             print('incorrect request', sp_called_error)
@@ -199,12 +209,19 @@ def main(deb_file: str):
     print(*deps_from_file, sep='\n')
 
     # print('\n'.join(check_diff_after_install(filepath)))
-    deps_from_install = list(check_diff_after_install(deb_file, architecture=package_info['Architecture']))
     print('===============================\ndependencies from installation:')
-    # for util in check_diff_after_install(filepath):
-    #     print(util)
+    system_before_installation = _all_utilities_in_system()
+    try:
+        deps_from_install = list(check_diff_after_install(deb_file, architecture=package_info['Architecture']))
+    except TypeError as te:
+        print(f"Installation was failed: {te}")
+        system_after_fail_installation = _all_utilities_in_system()
+        deps_from_install = list(_system_states_difference(
+            first_state=system_before_installation,
+            second_state=system_after_fail_installation,
+            architecture=package_info['Architecture']))
 
-    print(*deps_from_install)
+    print(*deps_from_install, sep='\n')
     all_dependencies = set(deps_from_install + deps_from_file)
     print('===================\ntotal dependencies:')
     print(*all_dependencies, sep='\n')

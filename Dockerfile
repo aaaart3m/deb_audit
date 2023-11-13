@@ -1,6 +1,6 @@
-FROM astra@sha256:e8d5f3d966f8c7632041fc509705359af09f03d4ee2ef18842386a940f0c7187
+FROM astra-new:base
 
-RUN apt-get update && apt-get install -y apt-rdepends dpkg-dev debsecan
+RUN apt-get update && apt-get install -y apt-rdepends dpkg-dev debsecan python3-pip
 RUN pip install tabulate
 
 WORKDIR /app

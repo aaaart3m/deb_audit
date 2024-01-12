@@ -44,19 +44,34 @@ def get_package_info(filepath: str):
         print('incorrect request', sp_called_error)
 
 
+def get_dependency_info_tuple(dependency: str) -> tuple:
+    dependency_tuple = dependency.strip().split('(', 1)
+    dependency_info_tuple = (dependency_tuple[0].strip(), re.search(r'\d[^)]*', dependency_tuple[1]).group(0))
+    return dependency_info_tuple
+
+
 def get_direct_components(package_info: dict) -> dict:
     direct_components = dict()
     # direct_components[package_info['Package']] = package_info['Version']
     components = package_info['Depends'].split(',')
 
     for dependency in components:
-        dependency_tuple = dependency.strip().split('(', 1)
-        if len(dependency_tuple) == 2:
-            direct_components[dependency_tuple[0].strip()] = re.search(r'\d[^)]*', dependency_tuple[1]).group(0)
-            # direct_components[dependency_tuple[0].strip()] = dependency_tuple[1].strip().split(' ')[1][:-1]
+
+        if '|' in dependency:
+            alternative_components = dependency.strip().split('|')
+            for component in alternative_components:
+                dependency_tuple = get_dependency_info_tuple(component)
+                direct_components[dependency_tuple[0]] = dependency_tuple[1]
         else:
-            direct_components[dependency_tuple[0].strip()] = None
-    # print(f'Get direct components:\n {direct_components}')
+            dependency_tuple = get_dependency_info_tuple(dependency)
+            direct_components[dependency_tuple[0]] = dependency_tuple[1]
+
+        # if len(dependency_tuple) == 2:
+        #     direct_components[dependency_tuple[0].strip()] = re.search(r'\d[^)]*', dependency_tuple[1]).group(0)
+        #     # direct_components[dependency_tuple[0].strip()] = dependency_tuple[1].strip().split(' ')[1][:-1]
+        # else:
+        #     direct_components[dependency_tuple[0].strip()] = None
+    print(f'Get direct components:\n {direct_components}')
     return direct_components
 
 
@@ -93,7 +108,7 @@ def get_transitive_components(direct_components: dict) -> dict:
         # }
         # print(f'{dependency} dependencies:\n {depend_info}')
         transitive_components[dependency] = depend_info
-    # print(f'Get transitive dependencies:\n {transitive_components}')
+    print(f'Get transitive dependencies:\n {transitive_components}')
     return transitive_components
 
 
@@ -103,7 +118,8 @@ def _all_utilities_in_system():
 
 
 def _system_states_difference(first_state, second_state, architecture):
-    difference = [line.strip() for line in first_state if line not in second_state]
+    difference = [line.strip() for line in second_state if line not in first_state]
+
     # difference_dict = dict()
     # for line in difference:
     #     if ':arm64' in line:
@@ -131,7 +147,7 @@ def check_diff_after_install(deb_file: str, architecture: str):
     if os.path.isfile(deb_file):
         # print(f"{filepath} is file")
         try:
-            system_before_installing = _all_utilities_in_system
+            system_before_installing = _all_utilities_in_system()
             # print('before: ', len(system_before_installing))
             # print('===========')
 
@@ -204,7 +220,10 @@ def main(deb_file: str):
     # print("direct: ", direct_dependencies)
     transitive_dependencies = get_transitive_components(direct_dependencies)
     # print("transitive: ", transitive_dependencies)
-    deps_from_file = parse_to_vulners_input_format(transitive_dependencies, architecture=package_info['Architecture'])
+    architecture = package_info['Architecture']
+    if package_info['Architecture'] == 'all':
+        architecture = 'amd64'
+    deps_from_file = parse_to_vulners_input_format(transitive_dependencies, architecture=architecture)
     print("=======================\ndependencies from file:")
     print(*deps_from_file, sep='\n')
 
@@ -212,14 +231,14 @@ def main(deb_file: str):
     print('===============================\ndependencies from installation:')
     system_before_installation = _all_utilities_in_system()
     try:
-        deps_from_install = list(check_diff_after_install(deb_file, architecture=package_info['Architecture']))
+        deps_from_install = list(check_diff_after_install(deb_file, architecture=architecture))
     except TypeError as te:
         print(f"Installation was failed: {te}")
         system_after_fail_installation = _all_utilities_in_system()
         deps_from_install = list(_system_states_difference(
             first_state=system_before_installation,
             second_state=system_after_fail_installation,
-            architecture=package_info['Architecture']))
+            architecture=architecture))
 
     print(*deps_from_install, sep='\n')
     all_dependencies = set(deps_from_install + deps_from_file)

@@ -46,6 +46,8 @@ def get_package_info(filepath: str):
 
 def get_dependency_info_tuple(dependency: str) -> tuple:
     dependency_tuple = dependency.strip().split('(', 1)
+    if len(dependency_tuple) < 2:
+        dependency_tuple.append('0')
     dependency_info_tuple = (dependency_tuple[0].strip(), re.search(r'\d[^)]*', dependency_tuple[1]).group(0))
     return dependency_info_tuple
 
@@ -71,7 +73,7 @@ def get_direct_components(package_info: dict) -> dict:
         #     # direct_components[dependency_tuple[0].strip()] = dependency_tuple[1].strip().split(' ')[1][:-1]
         # else:
         #     direct_components[dependency_tuple[0].strip()] = None
-    print(f'Get direct components:\n {direct_components}')
+    # print(f'Get direct components:\n {direct_components}')
     return direct_components
 
 
@@ -108,7 +110,7 @@ def get_transitive_components(direct_components: dict) -> dict:
         # }
         # print(f'{dependency} dependencies:\n {depend_info}')
         transitive_components[dependency] = depend_info
-    print(f'Get transitive dependencies:\n {transitive_components}')
+    # print(f'Get transitive dependencies:\n {transitive_components}')
     return transitive_components
 
 

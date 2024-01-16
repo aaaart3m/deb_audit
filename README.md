@@ -6,11 +6,11 @@ This Python application is designed to scan Debian packages for potential vulner
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/githeap1337/deb_audit.git
 ```
 2. Change into the application directory:
 ```bash
-cd <repository-directory>
+cd ./deb_audit
 ```
 3. Build the Docker image:
 ```bash

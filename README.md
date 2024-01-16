@@ -21,7 +21,7 @@ docker build -t deb_scanner .
 
 Run the Docker container with the Debian package file to perform the vulnerability scan:
 ```bash
-docker run -it --name deb_audit --rm -v ./<package_name>.deb:/app/files/z<package_name>.deb deb_scanner /app/files/<package_name>.deb
+docker run -it --name deb_audit --rm -v ./<package_name>.deb:/app/files/<package_name>.deb deb_scanner /app/files/<package_name>.deb
 ```
 Replace `<package_name>.deb` with the actual name of your Debian package file.
 

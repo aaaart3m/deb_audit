@@ -216,42 +216,46 @@ def check_vulnerability_in_dependencies(dependencies):
 
 
 def main(deb_file: str):
-    create_temporary_directory()
-    package_info = get_package_info(deb_file)
-    direct_dependencies = get_direct_components(package_info)
-    # print("direct: ", direct_dependencies)
-    transitive_dependencies = get_transitive_components(direct_dependencies)
-    # print("transitive: ", transitive_dependencies)
-    architecture = package_info['Architecture']
-    if package_info['Architecture'] == 'all':
-        architecture = 'amd64'
-    deps_from_file = parse_to_vulners_input_format(transitive_dependencies, architecture=architecture)
-    print("=======================\ndependencies from file:")
-    print(*deps_from_file, sep='\n')
-
-    # print('\n'.join(check_diff_after_install(filepath)))
-    print('===============================\ndependencies from installation:')
-    system_before_installation = _all_utilities_in_system()
     try:
-        deps_from_install = list(check_diff_after_install(deb_file, architecture=architecture))
-    except TypeError as te:
-        print(f"Installation was failed: {te}")
-        system_after_fail_installation = _all_utilities_in_system()
-        deps_from_install = list(_system_states_difference(
-            first_state=system_before_installation,
-            second_state=system_after_fail_installation,
-            architecture=architecture))
+        create_temporary_directory()
+        package_info = get_package_info(deb_file)
+        print("Package manifest json:\n", package_info)
+        direct_dependencies = get_direct_components(package_info)
+        # print("direct: ", direct_dependencies)
+        transitive_dependencies = get_transitive_components(direct_dependencies)
+        # print("transitive: ", transitive_dependencies)
+        architecture = package_info['Architecture']
+        if package_info['Architecture'] == 'all':
+            architecture = 'amd64'
+        deps_from_file = parse_to_vulners_input_format(transitive_dependencies, architecture=architecture)
+        print("=======================\ndependencies from file:")
+        print(*deps_from_file, sep='\n')
 
-    print(*deps_from_install, sep='\n')
-    all_dependencies = set(deps_from_install + deps_from_file)
-    print('===================\ntotal dependencies:')
-    print(*all_dependencies, sep='\n')
+        # print('\n'.join(check_diff_after_install(filepath)))
+        print('===============================\ndependencies from installation:')
+        system_before_installation = _all_utilities_in_system()
+        try:
+            deps_from_install = list(check_diff_after_install(deb_file, architecture=architecture))
+        except TypeError as te:
+            print(f"Installation was failed: {te}")
+            system_after_fail_installation = _all_utilities_in_system()
+            deps_from_install = list(_system_states_difference(
+                first_state=system_before_installation,
+                second_state=system_after_fail_installation,
+                architecture=architecture))
 
-    table_data = check_vulnerability_in_dependencies(all_dependencies)
-    table = tabulate(tabular_data=table_data, headers=['Utility', 'CVE'], tablefmt='simple_grid')
-    print('================================\nvulnerabilities in dependencies:')
-    print(table)
-    delete_temporary_directory()
+        print(*deps_from_install, sep='\n')
+        all_dependencies = set(deps_from_install + deps_from_file)
+        print('===================\ntotal dependencies:')
+        print(*all_dependencies, sep='\n')
+
+        table_data = check_vulnerability_in_dependencies(all_dependencies)
+        table = tabulate(tabular_data=table_data, headers=['Utility', 'CVE'], tablefmt='simple_grid')
+        print('================================\nvulnerabilities in dependencies:')
+        print(table)
+        delete_temporary_directory()
+    except KeyError as ke:
+        print(f'Scan executed with error: {ke}')
 
 
 if __name__ == "__main__":

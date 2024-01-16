@@ -5,31 +5,24 @@ This Python application is designed to scan Debian packages for potential vulner
 ## Installation
 
 1. Clone the repository:
-    ```bash
+```bash
    git clone <repository-url>
-    ```
-    
-3. Change into the application directory:
-    
-    bashCopy code
-    
-    `cd <repository-directory>`
-    
-4. Build the Docker image:
-    
-    bashCopy code
-    
-    `docker build -t deb_scanner .`
-    
+```
+2. Change into the application directory:
+```bash
+    cd <repository-directory>
+```
+3. Build the Docker image:
+```bash
+docker build -t deb_scanner .
+```
 
 ## Usage
 
 Run the Docker container with the Debian package file to perform the vulnerability scan:
-
-bashCopy code
-
-`docker run -it --name deb_audit --rm -v ./<package_name>.deb:/app/files/z<package_name>.deb deb_scanner /app/files/<package_name>.deb`
-
+```bash
+docker run -it --name deb_audit --rm -v ./<package_name>.deb:/app/files/z<package_name>.deb deb_scanner /app/files/<package_name>.deb
+```
 Replace `<package_name>.deb` with the actual name of your Debian package file.
 
 ## Dependencies

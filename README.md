@@ -5,18 +5,17 @@ This Python application is designed to scan Debian packages for potential vulner
 ## Installation
 
 1. Clone the repository:
+    ```bash
+   git clone <repository-url>
+    ```
     
-    bashCopy code
-    
-    `git clone <repository-url>`
-    
-2. Change into the application directory:
+3. Change into the application directory:
     
     bashCopy code
     
     `cd <repository-directory>`
     
-3. Build the Docker image:
+4. Build the Docker image:
     
     bashCopy code
     
